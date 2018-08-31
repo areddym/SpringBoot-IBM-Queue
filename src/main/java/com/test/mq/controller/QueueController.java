@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.jms.JMSException;
+import javax.jms.*;
+import java.util.Enumeration;
 
 @RestController
 public class QueueController {
@@ -25,6 +26,12 @@ public class QueueController {
     @Autowired
     JmsMQConnector jmsMQConnector;
 
+    /**
+     * Method to send a message to an IBM queue
+     * @param mensagem
+     * @throws JsonProcessingException
+     * @throws JMSException
+     */
     @RequestMapping(value = "/queue", method = RequestMethod.POST)
     public void postMessage(String mensagem) throws JsonProcessingException, JMSException {
         String queueName = "QUEUE.IN";
@@ -33,6 +40,28 @@ public class QueueController {
 //        jmsTemplate.getConnectionFactory().createConnection(userid, password);
         jmsTemplate.getConnectionFactory().createConnection();
         jmsTemplate.convertAndSend(queueName, tradeString);
+
+    }
+
+    /**
+     * Method to read the messages in a IBM queue without consumes the messages
+     * @throws JMSException
+     */
+    @RequestMapping(value = "/readQueueMessages", method = RequestMethod.GET)
+    public void readMessage() throws JMSException {
+        String queueName = "QUEUE.IN";
+        jmsTemplate.setConnectionFactory(jmsMQConnector.wmq());
+//        jmsTemplate.getConnectionFactory().createConnection(userid, password);
+        Connection connection = jmsTemplate.getConnectionFactory().createConnection();
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Queue queue = session.createQueue(queueName);
+        QueueBrowser browser = session.createBrowser(queue);
+        Enumeration msgs = browser.getEnumeration();
+
+        while (msgs.hasMoreElements()) {
+            System.out.println(msgs.nextElement());
+        }
 
     }
 }
